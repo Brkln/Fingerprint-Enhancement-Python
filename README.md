@@ -1,23 +1,40 @@
+## This fork is giving a better quality giving the developer possibility to apply CLAHE on image, giving you opportunity to add an extra "True" in the function.
+Without CLAHE: 
+
+
+<p><img align="left" src="https://user-images.githubusercontent.com/99593023/221321786-3df75aea-811d-4786-af14-0d22485ac25f.png"  height="300">
+</p>
+
+
+
+<p  >
+
+With CLHAE:
+
+<img align="center" src="https://user-images.githubusercontent.com/99593023/221321703-56e78ca3-d92f-443d-932e-d8486a1e3ab5.png"  height="300">
+
+</p>
+
 # Fingerprint-Enhancement-Python
 
 Uses oriented gabor filter bank to enhance the fingerprint image. The orientation of the gabor filters is decided by the orientation of ridges in the input image. 
 
 ## Installation and Running the tests
 
-### method 1 - use the library
+### method 1 - use the library, and remember to change the code from your package
   ```
   pip install fingerprint_enhancer
   ```
   
   **Usage:**
   ```
-  import fingerprint_enhancer								# Load the library
-  import cv2
-  
-  img = cv2.imread('image_path', 0)						# read input image
-  out = fingerprint_enhancer.enhance_Fingerprint(img)		# enhance the fingerprint image
-  cv2.imshow('enhanced_image', out);						# display the result
-  cv2.waitKey(0)											# hold the display window
+import fingerprint_enhancer								# Load the library
+import cv2
+
+img = cv2.imread('demo.jpg', 0)						# read input image
+out = fingerprint_enhancer.enhance_Fingerprint(img, False, True)		# enhance the fingerprint image, the third argument is using 
+cv2.imshow('enhanced_image', out);						# display the result
+cv2.waitKey(0)											# hold the display window
   ```
   - Alternatively, the script "src/example.py" can be used to run the example for this library.
 
