@@ -13,20 +13,21 @@ import math
 import scipy
 
 class FingerprintImageEnhancer(object):
-    def __init__(self):
-        self.ridge_segment_blksze = 16
-        self.ridge_segment_thresh = 0.1
-        self.gradient_sigma = 1
-        self.block_sigma = 7
-        self.orient_smooth_sigma = 7
-        self.ridge_freq_blksze = 38
-        self.ridge_freq_windsze = 5
-        self.min_wave_length = 5
-        self.max_wave_length = 15
-        self.kx = 0.65
-        self.ky = 0.65
-        self.angleInc = 3
-        self.ridge_filter_thresh = -3
+    def __init__(self, ridge_segment_blksze=16, ridge_segment_thresh=0.1, gradient_sigma=1, block_sigma=7, orient_smooth_sigma=7,
+                 ridge_freq_blksze=38, ridge_freq_windsze=5, min_wave_length=5, max_wave_length=15, kx=0.65, ky=0.65, angleInc=3.0, ridge_filter_thresh=-3):
+        self.ridge_segment_blksze = ridge_segment_blksze
+        self.ridge_segment_thresh = ridge_segment_thresh
+        self.gradient_sigma = gradient_sigma
+        self.block_sigma = block_sigma
+        self.orient_smooth_sigma = orient_smooth_sigma
+        self.ridge_freq_blksze = ridge_freq_blksze
+        self.ridge_freq_windsze = ridge_freq_windsze
+        self.min_wave_length = min_wave_length
+        self.max_wave_length = max_wave_length
+        self.kx = kx
+        self.ky = ky
+        self.angleInc = angleInc
+        self.ridge_filter_thresh = ridge_filter_thresh
 
 
         self._mask = []
@@ -39,8 +40,6 @@ class FingerprintImageEnhancer(object):
         self._binim = []
 
     def __normalise(self, img, mean, std):
-        if(np.std(img) == 0):
-            raise ValueError("Image standard deviation is 0. Please review image again")
         normed = (img - np.mean(img)) / (np.std(img))
         return (normed)
 
@@ -89,8 +88,8 @@ class FingerprintImageEnhancer(object):
         rows, cols = img.shape
         im = self.__normalise(img, 0, 1)  # normalise to get zero mean and unit standard deviation
 
-        new_rows = np.int(self.ridge_segment_blksze * np.ceil((np.float(rows)) / (np.float(self.ridge_segment_blksze))))
-        new_cols = np.int(self.ridge_segment_blksze * np.ceil((np.float(cols)) / (np.float(self.ridge_segment_blksze))))
+        new_rows = int(self.ridge_segment_blksze * np.ceil((float(rows)) / (float(self.ridge_segment_blksze))))
+        new_cols = int(self.ridge_segment_blksze * np.ceil((float(cols)) / (float(self.ridge_segment_blksze))))
 
         padded_img = np.zeros((new_rows, new_cols))
         stddevim = np.zeros((new_rows, new_cols))
@@ -160,7 +159,7 @@ class FingerprintImageEnhancer(object):
         if np.remainder(sze,2) == 0:
             sze = sze+1
 
-        gauss = cv2.getGaussianKernel(np.int(sze),self.gradient_sigma)
+        gauss = cv2.getGaussianKernel(int(sze),self.gradient_sigma)
         f = gauss * gauss.T
 
         fy,fx = np.gradient(f)                               #Gradient of Gaussian
@@ -175,7 +174,7 @@ class FingerprintImageEnhancer(object):
         #Now smooth the covariance data to perform a weighted summation of the data.
         sze = np.fix(6*self.block_sigma)
 
-        gauss = cv2.getGaussianKernel(np.int(sze), self.block_sigma)
+        gauss = cv2.getGaussianKernel(int(sze), self.block_sigma)
         f = gauss * gauss.T
 
         Gxx = ndimage.convolve(Gxx,f)
@@ -193,7 +192,7 @@ class FingerprintImageEnhancer(object):
             sze = np.fix(6*self.orient_smooth_sigma)
             if np.remainder(sze,2) == 0:
                 sze = sze+1
-            gauss = cv2.getGaussianKernel(np.int(sze), self.orient_smooth_sigma)
+            gauss = cv2.getGaussianKernel(int(sze), self.orient_smooth_sigma)
             f = gauss * gauss.T
             cos2theta = ndimage.convolve(cos2theta,f)                   # Smoothed sine and cosine of
             sin2theta = ndimage.convolve(sin2theta,f)                   # doubled angles
@@ -269,8 +268,12 @@ class FingerprintImageEnhancer(object):
 
         non_zero_elems_in_freq = freq_1d[0][ind]
 
-        self._mean_freq = np.mean(non_zero_elems_in_freq)
-        self._median_freq = np.median(non_zero_elems_in_freq)  # does not work properly
+        if(len(non_zero_elems_in_freq) != 0):
+            self._mean_freq = np.mean(non_zero_elems_in_freq)
+            self._median_freq = np.median(non_zero_elems_in_freq)  # does not work properly
+        else:
+            self._mean_freq = 0
+            self._median_freq = 0  # does not work properly
 
         self._freq = self._mean_freq * self._mask
 
@@ -432,7 +435,7 @@ class FingerprintImageEnhancer(object):
         sigmax = 1 / unfreq[0] * self.kx
         sigmay = 1 / unfreq[0] * self.ky
 
-        sze = np.int(np.round(3 * np.max([sigmax, sigmay])))
+        sze = int(np.round(3 * np.max([sigmax, sigmay])))
 
         x, y = np.meshgrid(np.linspace(-sze, sze, (2 * sze + 1)), np.linspace(-sze, sze, (2 * sze + 1)))
 
@@ -441,7 +444,7 @@ class FingerprintImageEnhancer(object):
 
         filt_rows, filt_cols = reffilter.shape
 
-        angleRange = np.int(180 / self.angleInc)
+        angleRange = int(180 / self.angleInc)
 
         gabor_filter = np.array(np.zeros((angleRange, filt_rows, filt_cols)))
 
@@ -496,13 +499,15 @@ class FingerprintImageEnhancer(object):
 
         self._binim = newim < self.ridge_filter_thresh
 
-    def save_enhanced_image(self, path):
-        # saves the enhanced image at the specified path
-        cv2.imwrite(path, (255 * self._binim))
-
-    def enhance(self, img, resize=True):
+    def enhance(self, img, resize=True, clahe=False):
         # main function to enhance the image.
         # calls all other subroutines
+
+        if (len(img.shape) > 2):  # convert image into gray if necessary
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if (clahe):
+            clahe = cv2.createCLAHE(clipLimit=15.0, tileGridSize=(8,8))
+            img = clahe.apply(img)
 
         if(resize):
             rows, cols = np.shape(img)
@@ -517,4 +522,12 @@ class FingerprintImageEnhancer(object):
         self.__ridge_orient()       # compute orientation image
         self.__ridge_freq()         # compute major frequency of ridges
         self.__ridge_filter()       # filter the image using oriented gabor filter
+        self._binim = 255 * self._binim.astype('uint8')
         return(self._binim)
+
+def enhance_Fingerprint(img, resize=False, clahe=False, ridge_segment_blksze=16, ridge_segment_thresh=0.1, gradient_sigma=1, block_sigma=7, orient_smooth_sigma=7,
+                 ridge_freq_blksze=38, ridge_freq_windsze=5, min_wave_length=5, max_wave_length=15, kx=0.65, ky=0.65, angleInc=3.0, ridge_filter_thresh=-3):
+
+    image_enhancer = FingerprintImageEnhancer(ridge_segment_blksze, ridge_segment_thresh, gradient_sigma, block_sigma, orient_smooth_sigma,
+                 ridge_freq_blksze, ridge_freq_windsze, min_wave_length, max_wave_length, kx, ky, angleInc, ridge_filter_thresh)  # Create object called image_enhancer
+    return(image_enhancer.enhance(img, resize, clahe))
